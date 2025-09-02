@@ -27,16 +27,25 @@ namespace Serilog.Sinks.Graylog.Core.MessageBuilders
         {
             if (logEvent.Exception != null)
             {
-                Tuple<string, string?> excMessageTuple = GetExceptionMessages(logEvent.Exception);
-                string exceptionDetail = excMessageTuple.Item1;
-                string stackTrace = excMessageTuple.Item2!;
-                string source = logEvent.Exception.Source!;
-                string type = logEvent.Exception.GetType().FullName!;
+                if (logEvent.Exception.GetType().FullName == "Serilog.Formatting.Compact.Reader.TextException")
+                {
+                    // If the exception has been serialised and deserialised using the Serilog.Compact.Reader package then all you can do with them is call ToString().
+                    string exceptionString = logEvent.Exception.ToString();
+                    logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionString", new ScalarValue(exceptionString)));
+                }
+                else
+                {
+                    Tuple<string, string?> excMessageTuple = GetExceptionMessages(logEvent.Exception);
+                    string exceptionDetail = excMessageTuple.Item1;
+                    string stackTrace = excMessageTuple.Item2!;
+                    string source = logEvent.Exception.Source!;
+                    string type = logEvent.Exception.GetType().FullName!;
 
-                logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionSource", new ScalarValue(source)));
-                logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionType", new ScalarValue(type)));
-                logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionMessage", new ScalarValue(exceptionDetail)));
-                logEvent.AddOrUpdateProperty(new LogEventProperty("StackTrace", new ScalarValue(stackTrace)));
+                    logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionSource", new ScalarValue(source)));
+                    logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionType", new ScalarValue(type)));
+                    logEvent.AddOrUpdateProperty(new LogEventProperty("ExceptionMessage", new ScalarValue(exceptionDetail)));
+                    logEvent.AddOrUpdateProperty(new LogEventProperty("StackTrace", new ScalarValue(stackTrace)));
+                }
             }
 
             return base.Build(logEvent);

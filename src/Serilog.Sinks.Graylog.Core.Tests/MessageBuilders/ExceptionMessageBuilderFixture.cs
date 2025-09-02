@@ -1,7 +1,10 @@
+using FluentAssertions;
 using Serilog.Events;
+using Serilog.Formatting.Compact.Reader;
 using Serilog.Sinks.Graylog.Core.MessageBuilders;
 using Serilog.Sinks.Graylog.Tests;
 using System;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Serilog.Sinks.Graylog.Core.Tests.MessageBuilders
@@ -35,9 +38,37 @@ namespace Serilog.Sinks.Graylog.Core.Tests.MessageBuilders
             DateTimeOffset date = DateTimeOffset.Now;
             LogEvent logEvent = LogEventSource.GetExceptionLogEvent(date, testExc);
 
-            //JObject obj = exceptionBuilder.Build(logEvent);
+            JsonObject obj = exceptionBuilder.Build(logEvent);
 
-            //obj.Should().NotBeNull();
+            obj.Should().NotBeNull();
+        }
+
+        [Fact]
+        public void WhenBuildWithTextException_AddsExceptionStringProperty()
+        {
+            // Arrange
+            DateTimeOffset date = DateTimeOffset.Now;
+            GraylogSinkOptions options = new GraylogSinkOptions();
+            ExceptionMessageBuilder exceptionBuilder = new("localhost", options);
+            Exception testException = null;
+            string exceptionString = "Test exception message";
+
+            try
+            {
+                throw new Serilog.Formatting.Compact.Reader.TextException(exceptionString);
+            }
+            catch (Exception ex)
+            {
+                testException = ex;
+            }
+
+            LogEvent logEvent = LogEventSource.GetExceptionLogEvent(date, testException);
+
+            // Act
+            JsonObject obj = exceptionBuilder.Build(logEvent);
+
+            // Assert
+            obj.Should().ContainKey("_ExceptionString").WhoseValue.ToString().Should().Be(exceptionString);
         }
     }
 }
