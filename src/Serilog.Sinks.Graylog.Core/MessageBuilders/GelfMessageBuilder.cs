@@ -155,9 +155,16 @@ namespace Serilog.Sinks.Graylog.Core.MessageBuilders
 
                             AddAdditionalField(jObject, new KeyValuePair<string, LogEventPropertyValue>(renderedKey, dictionaryValueElement.Value), key);
                         }
-                    } else
+                    }
+                    else
                     {
-                        var dict = dictionaryValue.Elements.ToDictionary(k => k.Key.Value, v => RenderPropertyValue(v.Value));
+                        var dict = dictionaryValue.Elements
+                            .Where(k => k.Key.Value != null) // Ensure keys are not null
+                            .ToDictionary(
+                                k => k.Key.Value!.ToString()!, // Convert key to string and ensure it's not null
+                                v => RenderPropertyValue(v.Value)
+                            );
+
                         var stringDictionary = JsonSerializer.SerializeToNode(dict, Options.JsonSerializerOptions);
 
                         jObject.Add(key, stringDictionary);
